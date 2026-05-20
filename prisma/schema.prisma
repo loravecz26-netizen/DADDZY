@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Firm {
+  id        String     @id @default(cuid())
+  name      String
+  createdAt DateTime   @default(now())
+  advisors  Advisor[]
+  clients   Client[]
+  auditLogs AuditLog[]
+}
+
+model Advisor {
+  id          String     @id @default(cuid())
+  firmId      String
+  clerkUserId String     @unique
+  email       String
+  name        String
+  createdAt   DateTime   @default(now())
+  firm        Firm       @relation(fields: [firmId], references: [id])
+  clients     Client[]
+  messages    Message[]
+  crmTokens   CrmToken[]
+}
+
+model Client {
+  id        String    @id @default(cuid())
+  firmId    String
+  advisorId String
+  name      String
+  emailEnc  String
+  phoneEnc  String
+  crmId     String?
+  crmVendor String?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  firm      Firm      @relation(fields: [firmId], references: [id])
+  advisor   Advisor   @relation(fields: [advisorId], references: [id])
+  messages  Message[]
+}
+
+// direction: "INBOUND" | "OUTBOUND"
+// channel: "SMS" | "VOICE" | "EMAIL"
+model Message {
+  id        String   @id @default(cuid())
+  threadId  String
+  advisorId String
+  clientId  String
+  direction String
+  channel   String
+  body      String
+  sentAt    DateTime
+  loggedAt  DateTime @default(now())
+  advisor   Advisor  @relation(fields: [advisorId], references: [id])
+  client    Client   @relation(fields: [clientId], references: [id])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String
+  action       String
+  resourceType String
+  resourceId   String
+  ts           DateTime @default(now())
+  ip           String
+  firmId       String
+  firm         Firm     @relation(fields: [firmId], references: [id])
+}
+
+model CrmToken {
+  id              String   @id @default(cuid())
+  advisorId       String
+  vendor          String
+  accessTokenEnc  String
+  refreshTokenEnc String
+  expiresAt       DateTime
+  updatedAt       DateTime @updatedAt
+  advisor         Advisor  @relation(fields: [advisorId], references: [id])
+
+  @@unique([advisorId, vendor])
+}
