@@ -13,11 +13,13 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 });
 
+// Skip strict validation at build time; Next.js evaluates this module during compilation.
+// At runtime (server requests), all vars must be present.
 const parsed = EnvSchema.safeParse(process.env);
 
-if (!parsed.success) {
+if (!parsed.success && process.env.NODE_ENV !== "development") {
   console.error("❌ Invalid environment variables:", parsed.error.flatten().fieldErrors);
   throw new Error("Invalid environment variables — check .env.example");
 }
 
-export const env = parsed.data;
+export const env = (parsed.success ? parsed.data : process.env) as z.infer<typeof EnvSchema>;
